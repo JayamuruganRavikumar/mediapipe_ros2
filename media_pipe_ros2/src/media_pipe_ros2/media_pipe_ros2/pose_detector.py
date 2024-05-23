@@ -41,60 +41,61 @@ class PosePublisher(Node):
         self.bridge = CvBridge()
 
 
-    def compare_depth(self):
-        print("called")
+
+    def getdepth_callback(self, msg):
+        #conver form 32FC1 to np array
+        self.depth = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height,msg.width)                 
+        if hasattr(self, 'rgb'):
+            self.compare_depth(self.rgb,self.depth)
+
+    def getrgb_callback(self, msg):
+        image_msg = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+        self.rgb = cv2.cvtColor(cv2.flip(image_msg, 0), cv2.COLOR_BGR2RGB)                
+
+    def compare_depth(self, image, depth):
 
         mediapipehumanposelist = MediaPipeHumanPoseList() 
         
         with mp_pose.Pose(
                min_detection_confidence=0.5,
                min_tracking_confidence=0.5) as pose:
-            results = pose.process(self.rgb)
+            results = pose.process(image)
 
             # Draw the pose annotation on the image.
-            self.rgb.flags.writeable = True
-            image = cv2.cvtColor(self.rgb, cv2.COLOR_RGB2BGR)
+            image.flags.writeable = True
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             mp_drawing.draw_landmarks( image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+            h, w, c = image.shape
 
-            
             if results.pose_landmarks != None:
-                ids = 0 
-                #for ids, pose_landmarks enumerate(results.pose_landmarks.landmark):
-                for pose_landmarks in(results.pose_landmarks.landmark):
-                    #if 16 <= ids < 23:
-                    mediapipehumanposelist.human_pose_list[ids].name = str(NAME_POSE[ids])
-                    mediapipehumanposelist.human_pose_list[ids].x = pose_landmarks.x
-                    mediapipehumanposelist.human_pose_list[ids].y = pose_landmarks.y
-                    mediapipehumanposelist.human_pose_list[ids].visibility = pose_landmarks.visibility
-                    ids = ids+1
+                index = 0
+                for ids, pose_landmarks in enumerate(results.pose_landmarks.landmark):
+                    if 15 <= ids < 23:
+                        cx,cy = int(pose_landmarks.x*w), int(pose_landmarks.y*h)
+                        mediapipehumanposelist.human_pose_list[index].name = str(NAME_POSE[ids])
+                        mediapipehumanposelist.human_pose_list[index].x = float(cx)
+                        mediapipehumanposelist.human_pose_list[index].y = float(cy)
+                        mediapipehumanposelist.human_pose_list[index].visibility = pose_landmarks.visibility
+                        print(depth[cx,cy])
+                        index+=1
 
                 mediapipehumanposelist.num_humans = 1
                 self.publisher_.publish(mediapipehumanposelist)
             else: 
                 ids = 0
                 for point in mp_pose.PoseLandmark:                          
-                                                                                      
-                    mediapipehumanposelist.human_pose_list[ids].name = str(NAME_POSE[ids])
-                    mediapipehumanposelist.human_pose_list[ids].x = 0.0
-                    mediapipehumanposelist.human_pose_list[ids].y = 0.0
-                    mediapipehumanposelist.human_pose_list[ids].visibility = 0.0
-                    ids = ids+1
+                    if 15 <= ids < 23:
+                        mediapipehumanposelist.human_pose_list[ids].name = str(NAME_POSE[ids])
+                        mediapipehumanposelist.human_pose_list[ids].x = 0.0
+                        mediapipehumanposelist.human_pose_list[ids].y = 0.0
+                        mediapipehumanposelist.human_pose_list[ids].visibility = 0.0
+                        ids +=1
             
                 mediapipehumanposelist.num_humans = 1
                 self.publisher_.publish(mediapipehumanposelist)
 
             img_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
             self.image_publisher.publish(img_msg)
-        
-    def getrgb_callback(self, msg):
-        image_msg = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        self.rgb = cv2.cvtColor(cv2.flip(image_msg, 0), cv2.COLOR_BGR2RGB)                
-
-    def getdepth_callback(self, msg):
-        #conver form 32FC1 to np array
-        self.depth = np.frombuffer(msg.data, dtype=np.float32).reshape(512, msg.width)                 
-        self.compare_depth()
-
 
 def main(args=None):
 
