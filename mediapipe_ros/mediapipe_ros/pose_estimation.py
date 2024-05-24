@@ -43,7 +43,9 @@ class PosePublisher(Node):
         
     def getdepth_callback(self, msg):
         #conver form 32FC1 to np array
-        self.depth = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height,msg.width)                 
+        depth = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height,msg.width)                 
+        self.depth = depth[::-1,:]
+        
         if hasattr(self, 'rgb'):
             self.compare_depth(self.rgb,self.depth)
 
@@ -77,7 +79,7 @@ class PosePublisher(Node):
                         poselist.human_pose[index].name = str(NAME_POSE[ids])
                         poselist.human_pose[index].x = cx
                         poselist.human_pose[index].y = cy
-                        poselist.human_pose[index].distance = int(depth[cx,cy])
+                        poselist.human_pose[index].distance = int(depth[cy,cx])
                         index+=1
 
                 self.publisher_.publish(poselist)
