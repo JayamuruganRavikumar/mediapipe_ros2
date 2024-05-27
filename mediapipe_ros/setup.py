@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pose_estimation = mediapipe_ros.pose_estimation:main'
+            'visulization = mediapipe_ros.visulization:main'
         ],
     },
 )
