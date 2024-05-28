@@ -1,12 +1,14 @@
 import rclpy
+from rclpy.node import Node
 import cv2
 import mediapipe as mp
 import numpy as np
-from rclpy.node import Node
+from cv_bridge import CvBridge
+
 from mediapipe_msg.msg import PoseList
 from mediapipe.python.solutions.pose import PoseLandmark
 from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
+
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
