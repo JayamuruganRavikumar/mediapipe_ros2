@@ -2,27 +2,32 @@ import rclpy
 import cv2
 import numpy as np
 from rclpy.node import Node
-from sensor_msgs.msg import Image
-from geometry_msgs import Point
+from sensor_msgs.msg import Image, CameraInfo
+from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Header, ColorRGBA
-from mediapipe_msg.msg import VisualPose
+from mediapipe_msg.msg import VisualPose, PoseList
 from cv_bridge import CvBridge
 
 class Visualization(Node):
     def __init__(self):
         super().__init__('visualization')
-        self.point_array_pub = self.create_publisher(VisualPose, '/mediapipe/3Dpoints', 10)
-        self.marker_pub = self.create_publisher(Marker, '/mediapipe/3Dpoints_marker', 10)
-        self.subscription=self.create_subscription(Image, '/rgb/camera_info', self.getcamerainfo_callback, 10)
-        self.subscription=self.create_subscription(Image, 'mediapipe/poselist', self.pixel_to_3d, 10)
+        self.point_array_pub = self.create_publisher(VisualPose, '/mediapipe/points3D', 10)
+        self.marker_pub = self.create_publisher(Marker, '/mediapipe/points_marker3D', 10)
+        self.subscription=self.create_subscription(CameraInfo, '/depth_to_rgb/camera_info', self.getcamerainfo_callback, 10)
+        self.subscription=self.create_subscription(PoseList, 'mediapipe/pose_list', self.pixel_to_3d, 10)
         self.bridge = CvBridge()
         self.caminfo = None
 
 
     def getcamerainfo_callback(self, msg):
 
-        self.caminfo = msg
+        #self.get_logger().info("Received Cam info")
+        try:
+            self.caminfo = msg
+        except Exception as e:
+            self.getlogget().info(f"Camera Info error{e}")
+
 
     def pixel_to_3d(self, msg):
 
@@ -30,6 +35,8 @@ class Visualization(Node):
             return
 
         points = VisualPose()
+        marker_points=[]
+        marker_names=[]
 
 
         #Get camera intrinsic parameters
@@ -37,27 +44,31 @@ class Visualization(Node):
         #                   [0 fy cy]
         #                   [0 0  1 ]
 
-        fx = self.caminfo.K[0]
-        fy = self.caminfo.K[4]
-        cx = self.caminfo.K[2]
-        cy = self.caminfo.K[5]
+        fx = self.caminfo.k[0]
+        fy = self.caminfo.k[4]
+        cx = self.caminfo.k[2]
+        cy = self.caminfo.k[5]
 
-        for i in msg.human_pose:
-            depth = msg.human_pose[i].z
-            points.act_position.name = msg.human_pose[i].name
-            points.act_position[i].x = (msg.human_pose[i].x - cx) * depth / fx
-            points.act_position[i].y = (msg.human_pose[i].y - cy) * depth / fy
-            points.act_position[i].z = depth
+        for i, val in enumerate(msg.human_pose):
+            depth = val.z
+            print(depth)
+            points.act_position[i].name =val.name
+            points.act_position[i].x = float((val.x - cx) * depth / fx)
+            points.act_position[i].y = float((val.y - cy) * depth / fy)
+            points.act_position[i].z = float(depth)
+            marker_points.append(Point(x=float((val.x - cx) * depth / fx), y=float((val.y - cy) * depth / fy), z=float(depth)))
+            marker_names.append(str(val.name))
+
+        print(marker_points)
 
         self.point_array_pub.publish(points)
-        self.point_marker(points)
+        self.point_marker(marker_points,marker_names)
 
-    def point_marker(self, points):
+    def point_marker(self, points, names):
 
-         # Create Marker message for points
         marker = Marker()
         marker.header = Header()
-        marker.header.frame_id = "camera_body"  # Set the frame ID to your desired reference frame
+        marker.header.frame_id = "rgb_camera_link"  # Set the frame ID 
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.ns = "points"
         marker.id = 0
@@ -74,11 +85,8 @@ class Visualization(Node):
         marker.color.r = 1.0
         marker.color.g = 0.0
         marker.color.b = 0.0
-        marker.color.a = 1.0  # Fully opaque
-
-        for point in points.act_position:
-
-            marker.points.append(Point(x=point.x, y=point.y, z=point.z)) 
+        marker.color.a = 1.0  # 1 for fully opaque
+        marker.points = points
 
         self.marker_pub.publish(marker)
         self.get_logger().info('Publishing PointArray and Marker')
@@ -86,15 +94,15 @@ class Visualization(Node):
         for i, point in enumerate(points):
             text_marker = Marker()
             text_marker.header = Header()
-            text_marker.header.frame_id = "camera_body"  # Set the frame ID to your desired reference frame
+            text_marker.header.frame_id = "rgb_camera_link"  # Set the frame ID
             text_marker.header.stamp = self.get_clock().now().to_msg()
-            text_marker.ns = point.act_position[i].name
+            text_marker.ns = names[i]
             text_marker.id = i + 1
             text_marker.type = Marker.TEXT_VIEW_FACING
             text_marker.action = Marker.ADD
-            text_marker.pose.position.x = point.act_position[i].x 
-            text_marker.pose.position.y = point.act_position[i].y 
-            text_marker.pose.position.z = point.act_position[i].z 
+            text_marker.pose.position.x = point.x 
+            text_marker.pose.position.y = point.y 
+            text_marker.pose.position.z = point.z 
             text_marker.pose.position.z += 0.2  # Slightly above the point
             text_marker.pose.orientation.w = 1.0
 
@@ -106,7 +114,7 @@ class Visualization(Node):
             text_marker.color.r = 0.0
             text_marker.color.g = 1.0
             text_marker.color.b = 0.0
-            text_marker.color.a = 1.0  # Fully opaque
+            text_marker.color.a = 1.0  # 1 for fully opaque
 
             text_marker.text = f"Point {i + 1}"
 

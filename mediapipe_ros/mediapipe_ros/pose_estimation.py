@@ -1,10 +1,9 @@
 import rclpy
-from rclpy.node import Node
 import cv2
 import mediapipe as mp
 import numpy as np
-from cv_bridge import CvBridge
-
+from cv_bridge import CvBridge, CvBridgeError
+from rclpy.node import Node
 from mediapipe_msg.msg import PoseList
 from mediapipe.python.solutions.pose import PoseLandmark
 from sensor_msgs.msg import Image
@@ -53,6 +52,8 @@ class PosePublisher(Node):
                 self.compare_depth(self.rgb,self.depth)
         except CvBridgeError as e:
             self.get_logger().error(f"Error converting from depth camera: {e}")
+        except Exception as e:
+            self.get_logger().error(f"Error form depth camera: {e}")
 
     #callback function for rgb camera
     def getrgb_callback(self, msg):
@@ -63,6 +64,8 @@ class PosePublisher(Node):
                 self.compare_depth(self.rgb,self.depth)
         except CvBridgeError as e:
             self.get_logger().error(f"Error converting from rgb camera: {e}")
+        except Exception as e:
+            self.get_logger().error(f"Error form rgb camera: {e}")
 
     #compare depth and rgb image
     def compare_depth(self, image, depth):
@@ -85,24 +88,25 @@ class PosePublisher(Node):
                 for ids, pose_landmarks in enumerate(results.pose_landmarks.landmark):
                     #check for wrist
                     if 15 <= ids < 23:
-                        cx,cy = int(pose_landmarks.x*w), int(pose_landmarks.y*h)
+                        cx,cy = pose_landmarks.x*w, pose_landmarks.y*h
                         poselist.human_pose[index].name = str(NAME_POSE[ids])
                         poselist.human_pose[index].x = cx
                         poselist.human_pose[index].y = cy
-                        poselist.human_pose[index].z = int(depth[cy,cx])
+                        poselist.human_pose[index].z = float(depth[int(cy),int(cx)])
                         index+=1
                 self.publisher_.publish(poselist)
 
             else: 
                 index = 0
-                for point in mp_pose.PoseLandmark:                          
+                for ids, pose_landmarks in enumerate(results.pose_landmarks.landmark):
                     if 15 <= ids < 23:
-                        poselist.human_pose[ids].name = str(NAME_POSE[ids])
-                        poselist.human_pose[ids].x = 0
-                        poselist.human_pose[ids].y = 0
-                        poselist.human_pose[ids].z = 0 
-                        index +=1
+                        poselist.human_pose[index].name = str(NAME_POSE[ids])
+                        poselist.human_pose[index].x = 0.0
+                        poselist.human_pose[index].y = 0.0
+                        poselist.human_pose[index].z = 0.0
+                        index+=1
                 self.publisher_.publish(poselist)
+
 
             img_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
             self.image_publisher.publish(img_msg)
