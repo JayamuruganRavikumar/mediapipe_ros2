@@ -8,6 +8,7 @@ from visualization_msgs.msg import Marker
 from std_msgs.msg import Header, ColorRGBA
 from mediapipe_msg.msg import VisualPose, PoseList
 from cv_bridge import CvBridge
+from tf2_ros import TransformBroadcaster, Buffer
 
 class Visualization(Node):
     def __init__(self):
@@ -20,7 +21,6 @@ class Visualization(Node):
 
 
     def getcamerainfo_callback(self, msg):
-
         #self.get_logger().info("Received Cam info")
         try:
             self.caminfo = msg
@@ -53,9 +53,14 @@ class Visualization(Node):
             points.act_position[i].y = float((val.y - cy) * depth / fy)
             points.act_position[i].z = float(depth)
 
-        print(marker_points)
-
         self.point_array_pub.publish(points)
+
+    def transform(self, pose):
+        #Publish 3D points to tf2 broadcaster
+
+        
+
+        pass
 
 
 def main(args=None):
