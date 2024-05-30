@@ -57,7 +57,6 @@ class Visualization(Node):
 
     def transform(self, pose):
         #Publish 3D points to tf2 broadcaster
-
         
 
         pass
