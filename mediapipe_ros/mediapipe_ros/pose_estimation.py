@@ -11,24 +11,24 @@ from sensor_msgs.msg import Image
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
-NAME_POSE = [
-    (PoseLandmark.NOSE), (PoseLandmark.LEFT_EYE_INNER),
-    (PoseLandmark.LEFT_EYE), (PoseLandmark.LEFT_EYE_OUTER),
-    (PoseLandmark.RIGHT_EYE_INNER), ( PoseLandmark.RIGHT_EYE),
-    (PoseLandmark.RIGHT_EYE_OUTER), ( PoseLandmark.LEFT_EAR),
-    (PoseLandmark.RIGHT_EAR), ( PoseLandmark.MOUTH_LEFT),
-    (PoseLandmark.MOUTH_RIGHT), ( PoseLandmark.LEFT_SHOULDER),
-    (PoseLandmark.RIGHT_SHOULDER), ( PoseLandmark.LEFT_ELBOW),
-    (PoseLandmark.RIGHT_ELBOW), ( PoseLandmark.LEFT_WRIST),
-    (PoseLandmark.RIGHT_WRIST), ( PoseLandmark.LEFT_PINKY),
-    (PoseLandmark.RIGHT_PINKY), ( PoseLandmark.LEFT_INDEX),
-    (PoseLandmark.RIGHT_INDEX), ( PoseLandmark.LEFT_THUMB),
-    (PoseLandmark.RIGHT_THUMB), ( PoseLandmark.LEFT_HIP),
-    (PoseLandmark.RIGHT_HIP), ( PoseLandmark.LEFT_KNEE),
-    (PoseLandmark.RIGHT_KNEE), ( PoseLandmark.LEFT_ANKLE),
-    (PoseLandmark.RIGHT_ANKLE), ( PoseLandmark.LEFT_HEEL),
-    (PoseLandmark.RIGHT_HEEL), ( PoseLandmark.LEFT_FOOT_INDEX),
-    (PoseLandmark.RIGHT_FOOT_INDEX)
+pose_name = [
+    "NOSE", "LEFT_EYE_INNER",
+    "LEFT_EYE", "LEFT_EYE_OUTER",
+    "RIGHT_EYE_INNER", "RIGHT_EYE",
+    "RIGHT_EYE_OUTER", "LEFT_EAR",
+    "RIGHT_EAR", "MOUTH_LEFT",
+    "MOUTH_RIGHT",  "LEFT_SHOULDER",
+    "RIGHT_SHOULDER","LEFT_ELBOW",
+    "RIGHT_ELBOW", "LEFT_WRIST",
+    "RIGHT_WRIST", "LEFT_PINKY",
+    "RIGHT_PINKY", "LEFT_INDEX",
+    "RIGHT_INDEX", "LEFT_THUMB",
+    "RIGHT_THUMB", "LEFT_HIP",
+    "RIGHT_HIP",  "LEFT_KNEE",
+    "RIGHT_KNEE", "LEFT_ANKLE",
+    "RIGHT_ANKLE", "LEFT_HEEL",
+    "RIGHT_HEEL", "LEFT_FOOT_INDEX",
+    "RIGHT_FOOT_INDEX"
 ]
 
 class PosePublisher(Node):
@@ -89,7 +89,7 @@ class PosePublisher(Node):
                     #check for wrist
                     if 15 <= ids < 23:
                         cx,cy = pose_landmarks.x*w, pose_landmarks.y*h
-                        poselist.human_pose[index].name = str(NAME_POSE[ids])
+                        poselist.human_pose[index].name = pose_name[ids]
                         poselist.human_pose[index].x = cx
                         poselist.human_pose[index].y = cy
                         poselist.human_pose[index].z = float(depth[int(cy),int(cx)])
@@ -100,7 +100,7 @@ class PosePublisher(Node):
                 index = 0
                 for ids, pose_landmarks in enumerate(results.pose_landmarks.landmark):
                     if 15 <= ids < 23:
-                        poselist.human_pose[index].name = str(NAME_POSE[ids])
+                        poselist.human_pose[index].name = pose_name[ids]
                         poselist.human_pose[index].x = 0.0
                         poselist.human_pose[index].y = 0.0
                         poselist.human_pose[index].z = 0.0
