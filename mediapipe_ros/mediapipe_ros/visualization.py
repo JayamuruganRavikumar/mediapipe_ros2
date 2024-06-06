@@ -30,6 +30,7 @@ class Visualization(Node):
 
 
 
+    #Convert 
     def pixel_to_3d(self, msg):
 
         if self.caminfo is None:
@@ -59,6 +60,7 @@ class Visualization(Node):
         self.transform(points)
 
 
+    #View pose landmarks as tf
     def transform(self, points):
         source_frame = "camera_body"
         for i, point in enumerate(points.act_position):
