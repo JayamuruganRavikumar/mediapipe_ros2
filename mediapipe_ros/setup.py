@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'pose_estimation = mediapipe_ros.pose_estimation:main',
-            'visualization = mediapipe_ros.visualization:main',
+            'pose_estimation_node = mediapipe_ros.pose_estimation:main',
+            'visualization_node = mediapipe_ros.visualization:main',
         ],
     },
 )
