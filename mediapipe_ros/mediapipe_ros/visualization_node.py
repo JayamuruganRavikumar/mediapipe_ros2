@@ -59,6 +59,9 @@ class Visualization(Node):
         self.point_array_pub.publish(points)
         self.transform(points)
 
+    def bounding_box(self, msg):
+        #Get bounding box of the detected pose
+        pass
 
     #View pose landmarks as tf
     def transform(self, points):
