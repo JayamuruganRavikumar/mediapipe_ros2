@@ -39,6 +39,7 @@ class PosePublisher(Node):
         self.image_publisher=self.create_publisher(Image, '/processed/image', 10)
         self.subscription = self.create_subscription(Image, '/rgb/image_raw', self.getrgb_callback, 10)
         self.subscription = self.create_subscription(Image, '/depth_to_rgb/image_raw', self.getdepth_callback, 10)
+        self.model_path = "model/pose_landmarker_full.task"
         self.bridge = CvBridge()
 
     #callback function for depth camera    
