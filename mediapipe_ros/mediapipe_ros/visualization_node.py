@@ -20,6 +20,18 @@ class Visualization(Node):
         self.bridge = CvBridge()
         self.caminfo = None
 
+    def depth_cb(self, msg):
+        try:
+            #conver form 32FC1 to np array
+            #depth = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height,msg.width)                 
+            depth = self.bridge.imgmsg_to_cv2(msg, "16UC1") 
+            self.depth = depth[::-1,:]
+            if hasattr(self, 'rgb'):
+                self.compare_depth(self.rgb,self.depth)
+        except CvBridgeError as e:
+            self.get_logger().error(f"Error converting from depth camera: {e}")
+        except Exception as e:
+            self.get_logger().error(f"Error form depth camera: {e}")
 
     def getcamerainfo_callback(self, msg):
         #self.get_logger().info("Received Cam info")
