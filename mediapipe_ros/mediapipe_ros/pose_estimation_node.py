@@ -20,6 +20,11 @@ from geometry_msgs.msg import Point
 import mediapipe as mp
 from mediapipe.python.solutions.pose import PoseLandmark
 
+import tf2_ros
+from geometry_msgs.msg import Point, TransformStamped
+from visualization_msgs.msg import Marker
+from std_msgs.msg import Header, ColorRGBA
+
 
 
 class PosePublisher(LifecycleNode):
@@ -31,6 +36,7 @@ class PosePublisher(LifecycleNode):
         self.declare_parameter("depth_image_reliability", QoSReliabilityPolicy.BEST_EFFORT)
         self.declare_parameter("depth_info_reliability", QoSReliabilityPolicy.BEST_EFFORT)
         self.declare_parameter("enable", True)
+        self.source_frame = "rgb_camera_link"
         self.cv_bridge = CvBridge()
         self.get_logger().info("Pose estimattion Node created")
 
@@ -88,6 +94,7 @@ class PosePublisher(LifecycleNode):
         ]
         self.mp_pose = mp.solutions.pose
         self.mp_drawing = mp.solutions.drawing_utils
+        self.broadcaster = tf2_ros.TransformBroadcaster(self)
         self.get_logger().info("Pose object intialized")
 
         #suscribers
@@ -187,6 +194,7 @@ class PosePublisher(LifecycleNode):
                     keypoint_msg.point2d = Point2D
                     keypoint_msg.point3d = Point
 
+                self.transform(keypoint_msg)
                 keypoint_list.append(keypoint_msg)
 
         return  keypoint_list
@@ -207,6 +215,21 @@ class PosePublisher(LifecycleNode):
         point_list = {"x": x, "y": y, "z": z }
 
         return point_list 
+
+    def transform(self, keypoints: Keypoint):
+
+        transform = TransformStamped()
+        transform.header.stamp = self.get_clock().now().to_msg()
+        transform.header.frame_id = self.source_frame
+        transform.child_frame_id = keypoints.name
+
+        transform.transform.translation.x = keypoints.point3d.x/1000
+        transform.transform.translation.y = keypoints.point3d.y/1000
+        transform.transform.translation.z = keypoints.point3d.z/1000
+        transform.transform.rotation.w = 1.0
+        self.broadcaster.sendTransform(transform)
+
+
 
 
 def main():
