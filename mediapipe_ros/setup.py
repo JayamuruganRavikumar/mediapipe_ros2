@@ -10,6 +10,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + "/model", ['model/pose_landmarker_full.task']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,8 +21,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'pose_estimation_node = mediapipe_ros.pose_estimation:main',
-            'visualization_node = mediapipe_ros.visualization:main',
+            'pose_estimation_node = mediapipe_ros.pose_estimation_node:main',
+            'visualization_node = mediapipe_ros.visualization_node:main',
         ],
     },
 )
