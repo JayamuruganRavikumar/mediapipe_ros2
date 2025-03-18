@@ -66,6 +66,7 @@ def generate_launch_description():
         arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'world', 'rgb_camera_link'],
         output='screen'
     )
+    mediapipe_share_dir = get_package_share_directory('mediapipe_ros')
     
     # Define the pose estimation node
     pose_estimation_node = Node(
