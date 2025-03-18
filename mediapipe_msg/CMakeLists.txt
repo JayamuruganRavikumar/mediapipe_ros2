@@ -8,10 +8,14 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
-	"msg/HumanPose.msg"
-	"msg/PoseList.msg"
-	"msg/VisualPose.msg"
+	"msg/Point2D.msg"
+	"msg/Point3D.msg"
+	"msg/Keypoint.msg"
+	"msg/PoseArray.msg"
+	DEPENDENCIES std_msgs geometry_msgs
 	)
 
 # uncomment the following section in order to fill in
