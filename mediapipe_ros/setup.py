@@ -10,7 +10,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/video', ['video/test_video.mp4']),
+#        ('share/' + package_name + '/video', ['video/test_video.mp4']),
         ('share/' + package_name + '/model', ['model/pose_landmarker_full.task']),
     ],
     install_requires=['setuptools'],
