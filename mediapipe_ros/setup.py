@@ -4,7 +4,7 @@ package_name = 'mediapipe_ros'
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version='0.1.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -14,15 +14,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='root',
-    maintainer_email='root@todo.todo',
-    description='TODO: Package description',
+    maintainer='jay',
+    maintainer_email='jayamurugan.pr@gmail.com',
+    description='A ROS2 wrapper for mediapipe',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'pose_estimation_node = mediapipe_ros.pose_estimation_node:main',
-            'visualization_node = mediapipe_ros.visualization_node:main',
         ],
     },
 )

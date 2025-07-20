@@ -1,4 +1,3 @@
-
 import rclpy
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
@@ -35,6 +34,14 @@ class PosePublisher(LifecycleNode):
         self.declare_parameter("rgb_image_reliability", QoSReliabilityPolicy.BEST_EFFORT)
         self.declare_parameter("depth_image_reliability", QoSReliabilityPolicy.BEST_EFFORT)
         self.declare_parameter("depth_info_reliability", QoSReliabilityPolicy.BEST_EFFORT)
+
+        self.declare_parameter("rgb_topic", "/rgb/image_raw")
+        self.declare_parameter("depth_topic", "/depth_to_rgb/image_raw")
+        self.declare_parameter("depth_info_topic", "/mediapipe/depth_to_rgb/camera_info")
+
+        self.declare_parameter("min_detection_confidence", 0.5)
+        self.declare_parameter("min_tracking_confidence", 0.5 )
+
         self.declare_parameter("enable", True)
         self.source_frame = "rgb_camera_link"
         self.cv_bridge = CvBridge()
@@ -46,18 +53,23 @@ class PosePublisher(LifecycleNode):
         self.enable = self.get_parameter(
             "enable").get_parameter_value().bool_value
 
+        self.rgb_topic = self.get_parameter("rgb_topic").get_parameter_value().string_value
+        self.depth_topic = self.get_parameter("depth_topic").get_parameter_value().string_value
+        self.depth_info_topic = self.get_parameter("depth_info_topic").get_parameter_value().string_value
+
+        self.min_detection_conf = self.get_parameter("min_detection_confidence").get_parameter_value().double_value
+        self.min_tracking_conf = self.get_parameter("min_tracking_confidence").get_parameter_value().double_value
+
         rgb_reliability = self.get_parameter("rgb_image_reliability").get_parameter_value().integer_value
         self.rgb_image_qos_profile = QoSProfile(reliability=rgb_reliability,
                                             history=QoSHistoryPolicy.KEEP_LAST,
                                             durability=QoSDurabilityPolicy.VOLATILE,
                                             depth=1)
-
         depth_reliability = self.get_parameter("depth_image_reliability").get_parameter_value().integer_value
         self.depth_image_qos_profile = QoSProfile(reliability=depth_reliability,
                                             history=QoSHistoryPolicy.KEEP_LAST,
                                             durability=QoSDurabilityPolicy.VOLATILE,
                                             depth=1)
-
         depth_info_reliability = self.get_parameter("depth_info_reliability").get_parameter_value().integer_value
         self.depth_info_qos_profile = QoSProfile(reliability=depth_info_reliability,
                                             history=QoSHistoryPolicy.KEEP_LAST,
@@ -98,26 +110,30 @@ class PosePublisher(LifecycleNode):
         self.get_logger().info("Pose object intialized")
 
         #suscribers
-        self._rgb_sub = message_filters.Subscriber(self, 
-            Image, "/mediapipe/rgb/image_raw", qos_profile=self.rgb_image_qos_profile
-        )
-        self.get_logger().info("rgb sub created")
+        try:
+            self._rgb_sub = message_filters.Subscriber(self, 
+                Image, self.rgb_topic, qos_profile=self.rgb_image_qos_profile
+            )
+            self.get_logger().info("rgb sub created")
 
-        self._depth_sub = message_filters.Subscriber(self, 
-            Image, "/mediapipe/depth_to_rgb/image_raw", qos_profile=self.depth_image_qos_profile
-        )
-        self.get_logger().info("depth sub created")
+            self._depth_sub = message_filters.Subscriber(self, 
+                Image, self.depth_topic, qos_profile=self.depth_image_qos_profile
+            )
+            self.get_logger().info("depth sub created")
 
-        self._depth_info_sub = message_filters.Subscriber(self,
-            CameraInfo, "/mediapipe/depth_to_rgb/camera_info", qos_profile=self.depth_info_qos_profile)
-        self.get_logger().info("message sub created")
+            self._depth_info_sub = message_filters.Subscriber(self,
+                CameraInfo, self.depth_info_topic, qos_profile=self.depth_info_qos_profile)
+            self.get_logger().info("depth info sub created")
 
-        self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-                (self._rgb_sub, self._depth_sub, self._depth_info_sub), 10, 0.5)
-        self.get_logger().info("sync sub created")
+            self._synchronizer = message_filters.ApproximateTimeSynchronizer(
+                    (self._rgb_sub, self._depth_sub, self._depth_info_sub), 10, 0.5)
+            self.get_logger().info("sync sub created")
 
-        self._synchronizer.registerCallback(self.pose_cb)
-        self.get_logger().info("sync callback created")
+            self._synchronizer.registerCallback(self.pose_cb)
+            self.get_logger().info("sync callback created")
+        except Exception as e:
+            self.get_logger().error(f"Failed to create subscribers: {e}")
+            return TransitionCallbackReturn.FAILURE
 
         return TransitionCallbackReturn.SUCCESS
 
@@ -126,18 +142,20 @@ class PosePublisher(LifecycleNode):
         self.get_logger().info(f"Deactivating {self.get_name()}")
         
         del self.mp_pose
+        del self._rgb_sub
+        del self._depth_sub
+        del self._depth_info_sub
 
-        self.destroy_subscription(self._rgb_sub)
-        self._rgb_sub = None
+        return TransitionCallbackReturn.SUCCESS
 
-        super().on_deactivate(state)
-
-    def on_cleanup(self, state: LifecycleNode) -> TransitionCallbackReturn:
+    def on_cleanup(self, state: LifecycleState) -> TransitionCallbackReturn:
 
         self.get_logger().info(f"Cleaning {self.get_name()}")
         self.destroy_publisher(self._im_pub)
         self.destroy_publisher(self._pose_pub)
-        del self.image_qos_profile
+        del self.rgb_image_qos_profile
+        del self.depth_image_qos_profile
+        del self.depth_info_qos_profile
 
         return TransitionCallbackReturn.SUCCESS
 
@@ -151,9 +169,10 @@ class PosePublisher(LifecycleNode):
         #flip image (camera mounted upside down)
         rgb_image = cv2.cvtColor(cv2.flip(rgb_image_msg, 0), cv2.COLOR_BGR2RGB)
 
+        #model with single signaturee for inference
         with self.mp_pose.Pose(
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5) as pose:
+                min_detection_confidence=self.min_detection_conf,
+                min_tracking_confidence=self.min_tracking_conf) as pose:
                 rgb_image.flags.writeable = False
                 results = pose.process(rgb_image)
                 # Draw the pose annotation on the image.
@@ -191,8 +210,8 @@ class PosePublisher(LifecycleNode):
                 else:
                     keypoint_msg = Keypoint()
                     keypoint_msg.name = self.pose_name[ids]
-                    keypoint_msg.point2d = Point2D
-                    keypoint_msg.point3d = Point
+                    keypoint_msg.point2d = Point2D()
+                    keypoint_msg.point3d = Point()
 
                 self.transform(keypoint_msg)
                 keypoint_list.append(keypoint_msg)
