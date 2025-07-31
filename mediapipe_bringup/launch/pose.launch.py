@@ -24,6 +24,9 @@ def generate_launch_description():
     min_tracking_conf_arg = DeclareLaunchArgument('min_tracking_confidence',
                                                   default_value='0.5',
                                                   description='Minimum tracking confidence')
+    use_gpu = DeclareLaunchArgument('use_gpu',
+                                    default_value=True,
+                                    description='Switch between GPU and CPU usage')
 
     pose_estimation_node = Node(
             package='mediapipe_ros',
@@ -35,6 +38,7 @@ def generate_launch_description():
                 'depth_info_topic':LaunchConfiguration('depth_info_topic'),
                 'min_detection_confidence':LaunchConfiguration('min_detection_confidence'),
                 'min_tracking_confidence':LaunchConfiguration('min_tracking_confidence'),
+                'use_gpu':LaunchConfiguration('use_gpu'),
                 'enable':True,
                 'rgb_image_reliability':1,
                 'depth_image_reliability':1,

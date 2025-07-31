@@ -15,6 +15,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 	"msg/Point3D.msg"
 	"msg/Keypoint.msg"
 	"msg/PoseArray.msg"
+	"msg/HandArray.msg"
 	DEPENDENCIES std_msgs geometry_msgs
 	)
 
